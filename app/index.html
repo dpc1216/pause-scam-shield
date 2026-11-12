@@ -1,0 +1,970 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pause · App Prototype</title>
+<meta name="description" content="Clickable mobile prototype of Pause, the scam shield for families.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/brand.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(1200px 700px at 30% 20%, #FBF9F5 0%, var(--ivory) 45%, #EDE7DD 100%);
+    color: var(--ink); font-family: var(--font-body); overflow: hidden;
+  }
+  body.shot { background: transparent; }
+
+  /* ---------- page chrome outside the phone ---------- */
+  .topbar {
+    height: 56px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; border-bottom: 1px solid var(--hairline); background: rgba(247,244,239,.8);
+    backdrop-filter: blur(8px);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; }
+  .brand .wordmark { font-size: 20px; }
+  .brand .descriptor { font-size: 9px; }
+  .top-actions { display: flex; gap: 10px; align-items: center; }
+  .chip-btn {
+    font: 700 12px/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase;
+    border: 1px solid var(--hairline); background: var(--porcelain); color: var(--ink);
+    padding: 10px 14px; border-radius: 999px; cursor: pointer;
+  }
+  .chip-btn:hover { border-color: var(--champagne); }
+  .chip-btn[aria-pressed="true"] { background: var(--ink); color: var(--ivory); border-color: var(--ink); }
+  .stage {
+    height: calc(100% - 56px); display: flex; align-items: center; justify-content: center; gap: 48px;
+    padding: 16px;
+  }
+  body.shot .stage { height: 100%; padding: 0; }
+  body.shot .topbar, body.shot .notes { display: none !important; }
+
+  .notes {
+    width: 340px; align-self: center; border-left: 1px solid var(--champagne); padding: 6px 0 6px 28px;
+    display: none;
+  }
+  .notes.open { display: block; }
+  .notes .caps { color: var(--brass); }
+  .notes h2 { font: 500 34px/1.05 var(--font-display); margin: 10px 0 18px; }
+  .notes dl { margin: 0; }
+  .notes dt { font: 700 11px/1 var(--font-body); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--graphite); margin-top: 18px; }
+  .notes dd { margin: 6px 0 0; font-size: 15px; line-height: 1.5; }
+  .notes .bmc { display: inline-block; margin: 4px 6px 0 0; padding: 5px 10px; border: 1px solid var(--hairline); border-radius: 999px; font-size: 12px; background: var(--porcelain); }
+
+  /* ---------- the device ---------- */
+  .device-wrap { position: relative; flex: none; }
+  .device {
+    position: absolute; top: 0; left: 0; width: 417px; height: 876px; transform-origin: top left;
+    border-radius: 66px; background: #0E0D0C; padding: 12px;
+    box-shadow: 0 0 0 1.5px #3A3632, 0 0 0 4px #1C1A18, 0 40px 80px rgba(23,22,21,.25), 0 8px 20px rgba(23,22,21,.15);
+  }
+  body.shot .device { box-shadow: 0 0 0 1.5px #3A3632, 0 0 0 4px #1C1A18; }
+  .device::before, .device::after { /* side buttons */
+    content: ""; position: absolute; width: 4px; background: #24211F; border-radius: 2px;
+  }
+  .device::before { left: -7px; top: 180px; height: 64px; box-shadow: 0 84px 0 #24211F; }
+  .device::after { right: -7px; top: 230px; height: 100px; }
+  .screen {
+    --ts: 1; position: relative; width: 393px; height: 852px; border-radius: 54px; overflow: hidden;
+    background: var(--ivory); font-size: calc(16px * var(--ts));
+  }
+  .island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 124px; height: 36px; background: #000; border-radius: 20px; z-index: 50; }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 54px; z-index: 40; display: flex; align-items: center;
+    justify-content: space-between; padding: 6px 34px 0 46px; font: 700 16px/1 -apple-system, "Segoe UI", sans-serif; pointer-events: none;
+  }
+  .statusbar svg { display: block; }
+  .screen.dark .statusbar { color: var(--ivory); }
+  .homebar { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: var(--ink); z-index: 60; opacity: .85; pointer-events: none; }
+  .screen.dark .homebar { background: var(--ivory); }
+
+  /* ---------- app layout ---------- */
+  .view { position: absolute; inset: 0; padding-top: 54px; display: flex; flex-direction: column; animation: fade .28s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .scroll { flex: 1; overflow-y: auto; padding: 8px 24px 28px; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+  .has-tabs .scroll { padding-bottom: 110px; }
+  .navrow { display: flex; align-items: center; justify-content: space-between; height: 48px; padding: 0 16px; flex: none; }
+  .iconbtn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; color: inherit; }
+  .iconbtn:hover { background: rgba(23,22,21,.05); }
+  .navtitle { font: 700 .75em/1 var(--font-body); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--graphite); }
+
+  h1.serif { font: 500 2.35em/1.02 var(--font-display); margin: .25em 0 .35em; letter-spacing: -.005em; }
+  h2.serif { font: 500 1.7em/1.08 var(--font-display); margin: .2em 0 .4em; }
+  h3.serif { font: 500 1.35em/1.1 var(--font-display); margin: 0 0 .25em; }
+  .eyebrow { font: 700 .7em/1.2 var(--font-body); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--brass); }
+  .muted { color: var(--graphite); }
+  p { line-height: 1.5; margin: .5em 0; }
+  .small { font-size: .875em; }
+  .rule { height: 1px; background: var(--hairline); border: 0; margin: 20px 0; }
+  .gold-rule { width: 36px; height: 1px; background: var(--champagne); margin: 18px 0; }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 56px;
+    border-radius: 999px; border: 1px solid var(--ink); background: var(--ink); color: var(--ivory);
+    font: 700 1em/1.2 var(--font-body); letter-spacing: .02em; cursor: pointer; padding: 0 22px; text-align: center;
+  }
+  .btn:active { transform: scale(.985); }
+  .btn.ghost { background: transparent; color: var(--ink); border-color: var(--hairline); }
+  .btn.ghost:hover { border-color: var(--champagne); }
+  .btn.danger { background: var(--scam); border-color: var(--scam); }
+  .btn + .btn { margin-top: 10px; }
+  .linkbtn { background: none; border: 0; color: var(--brass); font: 700 .95em var(--font-body); cursor: pointer; padding: 12px; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--champagne); }
+
+  .card { background: var(--porcelain); border: 1px solid var(--hairline); border-radius: 20px; padding: 18px; }
+  .card + .card, .card + .row, .row + .card { margin-top: 12px; }
+  .row {
+    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: var(--porcelain);
+    border: 1px solid var(--hairline); border-radius: 18px; padding: 16px; cursor: pointer; color: inherit; font: inherit;
+  }
+  .row + .row { margin-top: 10px; }
+  .row:hover { border-color: var(--champagne); }
+  .row .grow { flex: 1; min-width: 0; }
+  .row .t { font-weight: 700; }
+  .row .s { color: var(--graphite); font-size: .875em; margin-top: 2px; line-height: 1.35; }
+  .glyph { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--hairline); display: grid; place-items: center; flex: none; color: var(--ink); background: var(--ivory); }
+  .row.selected { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .alert-row { border-left: 3px solid var(--scam); }
+
+  .meter { height: 3px; background: var(--linen); border-radius: 2px; overflow: hidden; margin-top: 10px; }
+  .meter i { display: block; height: 100%; background: var(--champagne); }
+
+  /* tabs */
+  .tabs {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 92px; padding: 8px 10px 26px; z-index: 30;
+    display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
+    background: rgba(247,244,239,.92); backdrop-filter: blur(12px); border-top: 1px solid var(--hairline);
+  }
+  .tab { border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; color: var(--graphite); font: 700 10px/1 var(--font-body); letter-spacing: .1em; text-transform: uppercase; }
+  .tab.on { color: var(--ink); }
+  .tab.on::after { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--champagne); margin-top: 1px; }
+  .tab.center .disc { width: 58px; height: 58px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; margin-top: -26px; box-shadow: 0 8px 22px rgba(23,22,21,.25); }
+  .tab.center { color: var(--ink); }
+
+  /* verdict */
+  .verdict-word { font: 500 4.2em/0.95 var(--font-display); margin: .1em 0 .1em; }
+  .v-scam .verdict-word { color: var(--scam); }
+  .v-caution .verdict-word { color: var(--caution); }
+  .v-safe .verdict-word { color: var(--safe); }
+  .reasons { list-style: none; padding: 0; margin: 10px 0 0; counter-reset: r; }
+  .reasons li { counter-increment: r; display: grid; grid-template-columns: 34px 1fr; padding: 14px 0; border-top: 1px solid var(--hairline); line-height: 1.45; }
+  .reasons li::before { content: counter(r, upper-roman) "."; font: 500 1.25em/1.1 var(--font-display); color: var(--brass); }
+  .todo { border-radius: 18px; padding: 16px 18px; margin-top: 16px; }
+  .v-scam .todo { background: var(--scam-wash); }
+  .v-caution .todo { background: var(--caution-wash); }
+  .v-safe .todo { background: var(--safe-wash); }
+
+  .bubble { background: var(--linen); border-radius: 20px 20px 20px 6px; padding: 14px 16px; line-height: 1.45; }
+  .bubble .from { font-size: .75em; color: var(--graphite); margin-bottom: 6px; font-weight: 700; letter-spacing: .04em; }
+  .bubble a { color: #2F5FA7; }
+  .mail { background: var(--porcelain); border: 1px solid var(--hairline); border-radius: 16px; padding: 16px; line-height: 1.45; }
+  .qr { width: 150px; height: 150px; margin: 4px auto 10px; display: block; }
+
+  /* analyzing */
+  .analyzing { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 32px; }
+  .spin-ring { animation: draw 1.6s ease-in-out infinite; transform-origin: center; }
+  @keyframes draw { 0% { stroke-dashoffset: 182; } 60% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -182; } }
+  .steps { list-style: none; padding: 0; margin: 26px 0 0; text-align: left; }
+  .steps li { padding: 8px 0; color: var(--graphite); opacity: .35; transition: opacity .3s; }
+  .steps li.on { opacity: 1; color: var(--ink); }
+
+  /* dark call screen */
+  .screen.dark { background: var(--onyx); color: var(--ivory); }
+  .call { flex: 1; display: flex; flex-direction: column; padding: 20px 24px 40px; }
+  .call .eyebrow { color: var(--champagne); }
+  .call .who { font: 500 2.2em/1.05 var(--font-display); margin: 8px 0 2px; }
+  .transcript { margin-top: 22px; border-left: 1px solid var(--champagne); padding: 4px 0 4px 16px; line-height: 1.5; min-height: 120px; }
+  .transcript .typing::after { content: "▍"; animation: blink 1s steps(1) infinite; color: var(--champagne); }
+  @keyframes blink { 50% { opacity: 0; } }
+  .warn { margin-top: 18px; background: #221F1C; border: 1px solid #3A342D; border-radius: 18px; padding: 16px; }
+  .call .btn { background: var(--ivory); color: var(--ink); border-color: var(--ivory); }
+  .call .btn.ghost { background: transparent; color: var(--ivory); border-color: #4A443D; }
+
+  /* sheets + toast */
+  .sheet-back { position: absolute; inset: 0; background: rgba(20,19,18,.35); z-index: 70; animation: fadein .2s; }
+  @keyframes fadein { from { opacity: 0; } }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--ivory); border-radius: 28px 28px 0 0; padding: 12px 24px 40px; z-index: 71; animation: up .28s ease; max-height: 86%; overflow-y: auto; }
+  .sheet .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--hairline); margin: 0 auto 14px; }
+  @keyframes up { from { transform: translateY(40px); opacity: 0; } }
+  .toast { position: absolute; left: 16px; right: 16px; top: 60px; z-index: 80; background: var(--ink); color: var(--ivory); border-radius: 18px; padding: 14px 16px; font-size: .9em; line-height: 1.4; display: flex; gap: 12px; align-items: flex-start; animation: drop .3s ease; box-shadow: 0 12px 30px rgba(0,0,0,.2); }
+  @keyframes drop { from { transform: translateY(-14px); opacity: 0; } }
+
+  .field { display: block; width: 100%; border: 1px solid var(--hairline); background: var(--porcelain); border-radius: 14px; padding: 15px 16px; font: 1em var(--font-body); color: var(--ink); }
+  .field:focus { outline: 2px solid var(--champagne); outline-offset: 1px; }
+  label.lbl { display: block; font: 700 .72em var(--font-body); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--graphite); margin: 16px 0 8px; }
+
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .seg button { border: 1px solid var(--hairline); background: var(--porcelain); border-radius: 14px; padding: 14px 6px; cursor: pointer; font-family: var(--font-display); font-weight: 500; color: var(--ink); }
+  .seg button.on { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .toggle2 { display: inline-flex; border: 1px solid var(--hairline); border-radius: 999px; padding: 3px; background: var(--porcelain); }
+  .toggle2 button { border: 0; background: none; border-radius: 999px; padding: 8px 14px; font: 700 .8em var(--font-body); cursor: pointer; color: var(--graphite); }
+  .toggle2 button.on { background: var(--ink); color: var(--ivory); }
+
+  .plan { border: 1px solid var(--hairline); background: var(--porcelain); border-radius: 22px; padding: 18px; margin-top: 12px; position: relative; }
+  .plan.featured { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .plan .price { font: 500 2.2em/1 var(--font-display); }
+  .plan ul { margin: 10px 0 0; padding: 0; list-style: none; }
+  .plan li { padding: 5px 0 5px 22px; position: relative; font-size: .92em; }
+  .plan li::before { content: ""; position: absolute; left: 2px; top: .8em; width: 9px; height: 1px; background: var(--champagne); }
+  .ribbon { position: absolute; top: -10px; right: 16px; background: var(--ink); color: var(--ivory); font: 700 10px/1 var(--font-body); letter-spacing: .16em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; }
+
+  .chatlog { display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 86%; padding: 12px 15px; border-radius: 18px; line-height: 1.45; font-size: .95em; }
+  .msg.bot { background: var(--porcelain); border: 1px solid var(--hairline); border-bottom-left-radius: 6px; }
+  .msg.me { background: var(--ink); color: var(--ivory); align-self: flex-end; border-bottom-right-radius: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chip { border: 1px solid var(--hairline); background: var(--porcelain); border-radius: 999px; padding: 10px 14px; font: .85em var(--font-body); cursor: pointer; color: var(--ink); text-align: left; }
+  .chip:hover { border-color: var(--champagne); }
+
+  .dots { display: flex; gap: 8px; margin-top: 10px; }
+  .dots i { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--champagne); display: block; }
+  .dots i.on { background: var(--champagne); }
+  .quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+
+  .weather { background: var(--onyx); color: var(--ivory); border-radius: 22px; padding: 20px; }
+  .weather .eyebrow { color: var(--champagne); }
+  .weather h3 { font: 500 1.6em/1.1 var(--font-display); margin: 8px 0 6px; }
+  .trend { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: baseline; padding: 14px 0; border-top: 1px solid var(--hairline); }
+  .trend .n { font: 500 1.3em var(--font-display); color: var(--brass); }
+  .trend .c { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .up { color: var(--scam); font-size: .8em; font-weight: 700; }
+
+  .lock-card { text-align: center; padding: 26px 20px; }
+  .reveal { user-select: none; cursor: pointer; border: 1px dashed var(--champagne); border-radius: 14px; padding: 14px; text-align: center; font: 500 1.5em var(--font-display); letter-spacing: .06em; }
+  .member-av { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font: 500 1.15em var(--font-display); background: var(--linen); flex: none; }
+  .member-av.gold { background: transparent; border: 1px solid var(--champagne); color: var(--brass); }
+  .ticks { list-style: none; padding: 0; margin: 8px 0 0; }
+  .ticks li { display: flex; gap: 10px; align-items: center; padding: 7px 0; font-size: .95em; }
+
+  @media (max-width: 900px) { .notes, #notesBtn { display: none !important; } .stage { gap: 0; } }
+  @media (max-width: 560px) { .topbar .descriptor, .hide-sm { display: none; } .topbar { padding: 0 12px; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="../index.html" aria-label="Pause home">
+    <svg class="pause-mark" width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring" cx="32" cy="32" r="29" stroke-width="2"/><rect class="bar" x="24.6" y="21" width="4.6" height="22" rx="1.2"/><rect class="bar" x="34.8" y="21" width="4.6" height="22" rx="1.2"/></svg>
+    <span><span class="wordmark">Pause</span><br><span class="descriptor">Scam Shield</span></span>
+  </a>
+  <div class="top-actions">
+    <span class="caps hide-sm" style="color:var(--graphite)">Clickable prototype</span>
+    <button class="chip-btn" id="notesBtn" aria-pressed="false">Why this screen?</button>
+    <button class="chip-btn" id="restartBtn">Restart</button>
+  </div>
+</header>
+
+<main class="stage">
+  <div class="device-wrap" id="wrap">
+    <div class="device" id="device">
+      <div class="screen" id="screen">
+        <div class="island"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span style="display:flex;gap:6px;align-items:center">
+            <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg>
+            <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.5 5.6 9a3.4 3.4 0 0 1 4.8 0L8 11.5ZM3.4 6.8a6.5 6.5 0 0 1 9.2 0l-1.3 1.3a4.7 4.7 0 0 0-6.6 0L3.4 6.8ZM1.2 4.6a9.6 9.6 0 0 1 13.6 0l-1.3 1.3a7.8 7.8 0 0 0-11 0L1.2 4.6Z" fill="currentColor"/></svg>
+            <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2.5" y="2.5" width="17" height="8" rx="2" fill="currentColor"/><rect x="24.5" y="4.5" width="1.8" height="4" rx=".9" fill="currentColor" opacity=".5"/></svg>
+          </span>
+        </div>
+        <div id="app"></div>
+        <div class="homebar"></div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="notes" id="notes" aria-live="polite">
+    <div class="caps">Design note</div>
+    <h2 id="nTitle"></h2>
+    <dl>
+      <dt>Why it exists</dt><dd id="nWhy"></dd>
+      <dt>Design choice</dt><dd id="nChoice"></dd>
+      <dt>Business Model Canvas</dt><dd id="nBmc"></dd>
+    </dl>
+  </aside>
+</main>
+
+<script>
+/* ======================================================================
+   Pause prototype. One state object, one render function per screen.
+   Every screen also carries a design note (shown with "Why this screen?").
+   ====================================================================== */
+const params = new URLSearchParams(location.search);
+const SHOT = params.get('shot') === '1';
+if (SHOT) document.body.classList.add('shot');
+
+const fresh = () => ({
+  plan: params.get('plan') || 'family',   // 'free' | 'plus' | 'family'
+  provider: null,                          // set when a partner code is used
+  setupFor: null,
+  ts: Number(params.get('ts')) || 1,
+  checksLeft: 5,
+  guardian: 'Daniel',
+  codeWord: 'Mango sunset',
+  sample: params.get('sample') || 'sunpass',
+  billing: 'year',
+  streak: 4,
+  quiz: { i: 0, score: 0, answered: null },
+  moneyResolved: false,
+  booked: null,
+  chat: [],
+});
+let S = fresh();
+let stack = [];
+let current = null;
+
+const $app = document.getElementById('app');
+const $screen = document.getElementById('screen');
+
+/* ---------- icons (1.5px line, champagne-free so they read on any surface) ---------- */
+const I = {
+  back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  close: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  chev: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--graphite)"><path d="M9 5l7 7-7 7"/></svg>',
+  home: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"/></svg>',
+  radar: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l6-6"/></svg>',
+  circle: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="9" cy="9" r="3.2"/><circle cx="16.5" cy="10" r="2.6"/><path d="M3.5 19c.8-3 3-4.6 5.5-4.6s4.7 1.6 5.5 4.6M14.5 14.8c2.6-.5 5 .9 5.9 4.2"/></svg>',
+  learn: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 6.5c-2-1.6-4.8-2-8-1.5v13c3.2-.5 6 0 8 1.5 2-1.5 4.8-2 8-1.5V5c-3.2-.5-6-.1-8 1.5zM12 6.5v13"/></svg>',
+  msg: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+  mail: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="m4 7 8 6 8-6"/></svg>',
+  qr: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/></svg>',
+  phone: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M6.5 3.5h3l1.5 4-2 1.3a10 10 0 0 0 6.2 6.2l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2z"/></svg>',
+  bank: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3.5 9.5 12 4.5l8.5 5zM5.5 10v7M10 10v7M14 10v7M18.5 10v7M3.5 19.5h17"/></svg>',
+  card: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M3.5 10h17"/></svg>',
+  chat: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M5 5h14v10h-6l-4 4v-4H5z"/><path d="M9 9.5h6M9 12h3.5" stroke-linecap="round"/></svg>',
+  sun: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6 18 18M6 18l1.4-1.4M16.6 7.4 18 6"/></svg>',
+  lock: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5.5" y="10.5" width="13" height="9" rx="1.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>',
+  yes: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--safe)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  no: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--scam)" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10M17 7 7 17"/></svg>',
+  plus: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  flag: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M6 20V4.5h10l-1.8 3.5L16 11.5H6"/></svg>',
+};
+const mark = (s = 28, light = false, ring = 2) =>
+  `<svg width="${s}" height="${s}" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="none" stroke="var(--champagne)" stroke-width="${ring}"/><rect x="24.6" y="21" width="4.6" height="22" rx="1.2" fill="${light ? 'var(--ivory)' : 'var(--ink)'}"/><rect x="34.8" y="21" width="4.6" height="22" rx="1.2" fill="${light ? 'var(--ivory)' : 'var(--ink)'}"/></svg>`;
+
+/* ---------- sample content for the four kinds of check ---------- */
+const SAMPLES = {
+  sunpass: {
+    kind: 'A text message', icon: 'msg', verdict: 'scam',
+    content: `<div class="bubble"><div class="from">Text from +1 (839) 555-0117</div>SunPass: You have an unpaid toll of $4.15. Pay within 24 hrs to avoid a $50 late fee: <a>sunpass-tolls-pay.info</a></div>`,
+    word: 'Scam.', line: "Don't tap the link.",
+    reasons: [
+      "The link isn't SunPass. It's a look-alike site registered last week.",
+      'It rushes you: "within 24 hrs" and a fee threat are classic pressure.',
+      'It matches 1,284 Scam Radar reports in Miami-Dade this week.',
+    ],
+    todo: 'Delete the text. To check your account, type <b>sunpass.com</b> yourself or call the number on your SunPass account.',
+  },
+  doctor: {
+    kind: 'An email', icon: 'mail', verdict: 'safe',
+    content: `<div class="mail"><div class="from small muted" style="margin-bottom:8px"><b style="color:var(--ink)">Dr. Alvarez's Office</b> · appointments@alvarezfamilymed.example</div>Hello Rosa, this is a reminder of your appointment on Thursday, November 5 at 10:30 AM. Reply C to confirm, or call us at (305) 555-0142.</div>`,
+    word: 'Looks safe.', line: 'Nothing here asks for money or private details.',
+    reasons: [
+      'The sender matches Dr. Alvarez in your contacts.',
+      'There is no link to tap and no payment requested.',
+      'The phone number matches the one you already have saved.',
+    ],
+    todo: 'Fine to reply. Remember: a real office will never ask for your Medicare number by email.',
+  },
+  qr: {
+    kind: 'A QR code', icon: 'qr', verdict: 'caution',
+    content: `<div class="mail" style="text-align:center"><div class="small muted" style="margin-bottom:6px">Sticker on a parking meter, Brickell</div><svg class="qr" viewBox="0 0 29 29" shape-rendering="crispEdges">${qrPattern()}</svg><div class="small">"Scan to pay for parking"</div></div>`,
+    word: 'Be careful.', line: 'This code opens a site that asks for your card.',
+    reasons: [
+      'The website was created 3 days ago.',
+      "It isn't the city's official parking app.",
+      'Stickers placed over real meter codes are a growing trick.',
+    ],
+    todo: 'Pay at the meter itself or in the official parking app you already use. Want to report this sticker?',
+  },
+};
+function qrPattern() {
+  // deterministic faux QR (not scannable on purpose) — finder squares + seeded noise
+  let s = '', seed = 7;
+  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const finder = (x, y) => `<rect x="${x}" y="${y}" width="7" height="7" fill="#171615"/><rect x="${x+1}" y="${y+1}" width="5" height="5" fill="#fff"/><rect x="${x+2}" y="${y+2}" width="3" height="3" fill="#171615"/>`;
+  s += '<rect width="29" height="29" fill="#fff"/>';
+  for (let y = 0; y < 29; y++) for (let x = 0; x < 29; x++) {
+    const inF = (x < 8 && y < 8) || (x > 20 && y < 8) || (x < 8 && y > 20);
+    if (!inF && rnd() > 0.55) s += `<rect x="${x}" y="${y}" width="1" height="1" fill="#171615"/>`;
+  }
+  return s + finder(0, 0) + finder(22, 0) + finder(0, 22);
+}
+
+const QUIZ = [
+  { text: '"Your Amazon account is locked. Verify your card within 2 hours: amzn-secure-help.com"', answer: 'scam', why: 'A look-alike link plus a deadline. Amazon never asks you to verify a card through a texted link.' },
+  { text: '"Publix: Your pickup order is ready at the store you chose. Show code 4471 at the counter."', answer: 'real', why: 'No link, no payment, and it matches an order you placed. That is what a real notice looks like.' },
+  { text: '"Grandma, it\'s me. New number. Can you send $900 in gift cards? Don\'t tell Mom."', answer: 'scam', why: 'A new number, secrecy, and gift cards. Ask for your family code word, then call the real number you have.' },
+];
+
+const ANSWERS = {
+  'Does Medicare ever call me?': "Medicare won't call you out of the blue to ask for your Medicare number or to sell you something. If someone does, hang up and call 1-800-MEDICARE (1-800-633-4227) yourself.",
+  'I already paid a scammer. What now?': "You're not alone, and acting fast helps. First, call your bank or card company and ask them to stop or reverse the payment. If you paid with a gift card, call the company that issued it. Then report it at ReportFraud.ftc.gov. Would you like me to let Daniel know?",
+  'Is a toll text with a link real?': 'Treat any toll text with a payment link as a scam. Type sunpass.com yourself, or call the number on your SunPass account, to check what you owe.',
+};
+
+/* ---------- design notes (why each screen exists) ---------- */
+const NOTES = {
+  welcome: ['Welcome', 'Gives the promise in one sentence before asking for anything.', 'No account wall. Our 60+ users decide whether to trust an app in the first few seconds, so the first screen is calm, slow, and plain.', ['Value Propositions', 'Customer Relationships']],
+  who: ['Who is this for?', 'The person who uses Pause is often not the person who pays for it.', 'Two plain choices instead of a form. "Me and my family" leads to the Family plan, which is how most of our revenue is earned.', ['Customer Segments', 'Revenue Streams']],
+  text: ['Reading size', 'Our first segment is adults 60 and older.', 'Three sizes with a live preview, set before anything else. Every screen scales with it. The body font, Atkinson Hyperlegible, was designed for low-vision readers.', ['Customer Segments', 'Value Propositions']],
+  guardian: ['Choose a Guardian', 'Brings a trusted person into the decision, which is how most scams get stopped in real life.', 'We say what the Guardian can NOT see before asking for a name. Independence is the worry that stops parents from saying yes.', ['Value Propositions', 'Customer Relationships']],
+  codeword: ['Family Code Word', 'An AI voice clone can copy a grandson\'s voice, but it can\'t know a word that was never posted online.', 'Set during setup, while the family is calm, not during a crisis.', ['Value Propositions', 'Key Activities']],
+  home: ['Home', 'One job: make "Check something" the easiest thing on the screen.', 'One primary action, then only the alerts that matter today. Plan status is visible, so the buyer/user split (a gift from Daniel) is clear.', ['Value Propositions', 'Revenue Streams']],
+  check: ['Check something', 'Covers the four ways scams arrive: texts, emails, QR codes, and calls.', 'Large tiles with one label each. In the real app, people share straight from Messages or Mail, so there is no copying and pasting.', ['Value Propositions', 'Key Resources']],
+  input: ['Confirm what to check', 'Shows exactly what Pause will read, so nothing feels hidden.', 'On the Free plan, this is where a check is counted. Showing the count here makes the upgrade feel fair, not sneaky.', ['Revenue Streams', 'Customer Relationships']],
+  analyzing: ['Pausing', 'Scammers sell urgency, and this screen is the opposite of urgency.', 'The logo\'s ring draws itself while three real checks run: the language, the link, and Scam Radar.', ['Key Resources', 'Key Activities']],
+  verdict: ['The verdict', 'A plain verdict (Safe, Be careful, or Scam) with the reasons and the next step.', 'One big word in a calm color, three numbered reasons, and one clear action. "Report" grows our scam database, and "Tell Daniel" brings the family in.', ['Value Propositions', 'Key Resources', 'Customer Relationships']],
+  call: ['Call screening', 'AI voice-clone "grandparent" calls cost families thousands.', 'Pause screens unknown callers first (carrier forwarding through Twilio) and shows what they said before Rosa picks up. Dark screen = slow down.', ['Key Partnerships', 'Value Propositions']],
+  codecheck: ['Ask for the code word', 'Turns a panicked moment into a single yes or no question.', 'Hold to reveal, so the word is never shown by accident. "No" alerts the Guardian and offers to report.', ['Value Propositions', 'Customer Relationships']],
+  money: ['Money Guard', 'Catches the payment patterns scammers ask for, like gift cards, first-time wires, and crypto ATMs.', 'Read-only through Plaid: we say clearly that Pause can\'t move money. The two answers are worded the way people actually talk.', ['Key Partnerships', 'Value Propositions', 'Revenue Streams']],
+  circle: ['Family Circle', 'The Family plan covers up to 6 people, and this is where that value lives.', '"What Daniel can and can\'t see" is spelled out with checks and crosses, because privacy is the deal-breaker for older parents.', ['Customer Relationships', 'Revenue Streams']],
+  radar: ['Scam Radar', 'Every confirmed report makes the AI smarter for everyone. That data is our moat.', 'Local first (Miami-Dade), with real counts. Monday\'s "Scam Weather" makes it a weekly habit.', ['Key Resources', 'Key Activities', 'Channels']],
+  learn: ['Spot the Scam', 'A 60-second weekly drill keeps people sharp and keeps them coming back.', 'Gamification from the app design slides: a streak, levels, and instant feedback. Short on purpose.', ['Customer Relationships', 'Key Activities']],
+  assistant: ['Ask Pause', 'Scams happen at 10 p.m. on a Sunday. Help has to be there at 10 p.m. on a Sunday.', 'Suggested questions instead of a blank box, and answers that point to official sources like ReportFraud.ftc.gov.', ['Customer Relationships']],
+  plans: ['Plans', 'Freemium: try Pause free, then upgrade when it has proven itself.', 'Family is highlighted and yearly is the default ($99 vs $119.88). Bank and employer codes turn on our B2B channel.', ['Revenue Streams', 'Channels', 'Key Partnerships']],
+  account: ['Account', 'Settings people actually need, with the privacy promise in writing.', '"No ads. We never sell your data." is a feature, not fine print, so it sits on the main settings screen.', ['Customer Relationships', 'Key Resources']],
+  setup: ['Setup Sunday', 'Many older users won\'t set up a new app alone.', 'Free live video help every Sunday. Booking takes two taps and confirms by text.', ['Customer Relationships', 'Key Activities']],
+  locked: ['Family feature preview', 'Shows Free members exactly what Pause Family adds.', 'A quiet, honest preview with the price stated, not a pop-up.', ['Revenue Streams']],
+};
+
+/* ---------- helpers ---------- */
+const isFamily = () => S.plan === 'family';
+const planName = () => S.plan === 'family' ? 'Pause Family' : S.plan === 'plus' ? 'Pause Plus' : 'Pause Free';
+const planLine = () => S.provider ? `${planName()} · provided by ${S.provider}` : S.plan === 'family' ? 'Pause Family · gift from Daniel' : planName();
+const nav = (title, opts = {}) => `<div class="navrow">${opts.noBack ? '<span style="width:44px"></span>' : `<button class="iconbtn" data-back aria-label="Back">${opts.close ? I.close : I.back}</button>`}<span class="navtitle">${title || ''}</span><span style="width:44px">${opts.right || ''}</span></div>`;
+const row = (icon, t, s, attrs, extra = '') => `<button class="row ${extra}" ${attrs}><span class="glyph">${icon}</span><span class="grow"><div class="t">${t}</div>${s ? `<div class="s">${s}</div>` : ''}</span>${I.chev}</button>`;
+
+function tabs(on) {
+  const t = (id, icon, label) => `<button class="tab ${on === id ? 'on' : ''}" data-tab="${id}">${icon}<span>${label}</span></button>`;
+  return `<nav class="tabs">${t('home', I.home, 'Home')}${t('radar', I.radar, 'Radar')}<button class="tab center" data-go="check" aria-label="Check something"><span class="disc">${mark(34, true, 2.6)}</span><span>Check</span></button>${t('circle', I.circle, 'Circle')}${t('learn', I.learn, 'Learn')}</nav>`;
+}
+
+function toast(html, ms = 3200) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span style="flex:none;margin-top:1px">${mark(20, true)}</span><span>${html}</span>`;
+  $screen.appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+
+function sheet(html) {
+  closeSheet();
+  const back = document.createElement('div'); back.className = 'sheet-back'; back.dataset.closeSheet = '';
+  const sh = document.createElement('div'); sh.className = 'sheet'; sh.innerHTML = `<div class="grab"></div>${html}`;
+  $screen.append(back, sh);
+}
+function closeSheet() { $screen.querySelectorAll('.sheet,.sheet-back').forEach(n => n.remove()); }
+
+/* ---------- screens ---------- */
+const V = {};
+
+V.welcome = () => `
+  <div class="scroll" style="display:flex;flex-direction:column;justify-content:space-between;padding-top:70px">
+    <div style="text-align:center">
+      ${mark(112, false, 1.4)}
+      <div class="wordmark" style="font-size:2.3em;margin:26px 0 10px;margin-right:-.26em">Pause</div>
+      <div class="descriptor" style="font-size:.66em;margin-right:-.34em">Scam Shield</div>
+      <div class="gold-rule" style="margin:34px auto"></div>
+      <h1 class="serif" style="font-size:2.05em">A calm second opinion before you click, pay, or answer.</h1>
+    </div>
+    <div>
+      <button class="btn" data-go="who">Begin</button>
+      <div style="text-align:center;margin-top:6px"><button class="linkbtn" data-act="partnerSheet">I have a code from my bank or employer</button></div>
+    </div>
+  </div>`;
+
+V.who = () => `
+  ${nav('Step 1 of 4')}
+  <div class="scroll">
+    <h1 class="serif">Who would you like Pause to protect?</h1>
+    <p class="muted">You can change this later.</p>
+    <div style="margin-top:22px">
+      ${row(I.home, 'Just me', 'Free to start · 5 checks a month', 'data-act="setupFor" data-v="me"', S.setupFor === 'me' ? 'selected' : '')}
+      ${row(I.circle, 'Me and my family', 'Up to 6 people · Guardian alerts · Money Guard', 'data-act="setupFor" data-v="family"', S.setupFor === 'family' ? 'selected' : '')}
+    </div>
+    <div class="card" style="margin-top:22px;background:transparent">
+      <div class="eyebrow">Why we ask</div>
+      <p class="small" style="margin-bottom:0">Most scams are stopped by a second person. With a family plan, someone you trust can be told when something looks dangerous.</p>
+    </div>
+  </div>`;
+
+V.text = () => `
+  ${nav('Step 2 of 4')}
+  <div class="scroll">
+    <h1 class="serif">Choose a comfortable reading size.</h1>
+    <div class="seg" style="margin-top:20px">
+      ${[[1, 'Standard', 18], [1.15, 'Large', 22], [1.3, 'Largest', 26]].map(([v, l, px]) => `<button class="${S.ts === v ? 'on' : ''}" data-act="ts" data-v="${v}"><div style="font-size:${px}px">Aa</div><div style="font:700 11px var(--font-body);letter-spacing:.1em;text-transform:uppercase;margin-top:6px">${l}</div></button>`).join('')}
+    </div>
+    <div class="card" style="margin-top:22px">
+      <div class="eyebrow">Preview</div>
+      <div class="verdict-word" style="font-size:2.6em;color:var(--scam);margin-top:6px">Scam.</div>
+      <p style="margin-bottom:0">Don't tap the link. The real SunPass website is sunpass.com.</p>
+    </div>
+    <div style="margin-top:26px"><button class="btn" ${S.setupFor === 'me' ? 'data-act="finishSetup"' : 'data-go="guardian"'}>Continue</button></div>
+  </div>`;
+
+V.guardian = () => `
+  ${nav('Step 3 of 4')}
+  <div class="scroll">
+    <h1 class="serif">Choose a Guardian.</h1>
+    <p class="muted">Someone you trust, who is told only when something is high-risk.</p>
+    <div class="card" style="margin-top:16px">
+      <ul class="ticks">
+        <li>${I.yes} Alerts when a scam is blocked or a risky payment is flagged</li>
+        <li>${I.no} Never your messages, calls, or bank balance</li>
+      </ul>
+    </div>
+    <label class="lbl" for="gname">Guardian's name</label>
+    <input class="field" id="gname" value="${S.guardian}">
+    <label class="lbl" for="gphone">Mobile number</label>
+    <input class="field" id="gphone" value="(305) 555-0168">
+    <div style="margin-top:24px"><button class="btn" data-act="saveGuardian">Invite Guardian</button><button class="btn ghost" data-go="codeword">Not now</button></div>
+  </div>`;
+
+V.codeword = () => `
+  ${nav('Step 4 of 4')}
+  <div class="scroll">
+    <h1 class="serif">Pick a family code word.</h1>
+    <p class="muted">If a caller says they're family and in trouble, Pause will remind you to ask for it. An AI copy of a voice won't know it.</p>
+    <label class="lbl" for="cw">Code word</label>
+    <input class="field" id="cw" value="${S.codeWord}" style="font:500 1.4em var(--font-display)">
+    <p class="small muted" style="margin-top:10px">Choose something that has never been posted online. Share it in person, not by text.</p>
+    <div style="margin-top:24px"><button class="btn" data-act="saveCode">Save and finish</button></div>
+  </div>`;
+
+V.home = () => {
+  const free = S.plan === 'free';
+  const left = Math.max(0, S.checksLeft);
+  return `
+  <div class="navrow" style="padding:0 20px"><span class="eyebrow" style="color:var(--graphite)">Tuesday · November 3</span>
+    <button class="iconbtn" data-go="account" aria-label="Account" style="border:1px solid var(--champagne);width:40px;height:40px;font:500 1.15em var(--font-display)">R</button></div>
+  <div class="scroll">
+    <h1 class="serif" style="margin-top:6px">Good evening, Rosa.</h1>
+    <div class="small muted">${planLine()}</div>
+    <div class="card" style="margin-top:20px;padding:22px">
+      <h3 class="serif">Something feel off?</h3>
+      <p class="muted small" style="margin-top:0">Share a text, email, QR code, or call. Pause will tell you if it's safe.</p>
+      <button class="btn" data-go="check" style="margin-top:14px">${mark(22, true, 3)} Check something</button>
+      ${free ? `<div class="small" style="margin-top:14px;display:flex;justify-content:space-between"><span>${left} of 5 free checks left this month</span><button class="linkbtn" style="padding:0" data-go="plans">See plans</button></div><div class="meter"><i style="width:${left * 20}%"></i></div>` : `<div class="small muted" style="margin-top:12px;text-align:center">Unlimited checks</div>`}
+    </div>
+    ${isFamily() && !S.moneyResolved ? row(I.card, 'Money Guard flagged a purchase', '$1,500 in gift cards today', 'data-go="money"', 'alert-row') : ''}
+    ${isFamily() ? row(I.circle, `${S.guardian} is your Guardian`, 'Family Circle · 3 people protected', 'data-tab="circle"') : row(I.lock, 'Money Guard and Family Circle', 'Part of Pause Family · $99 a year for up to 6', 'data-go="plans"')}
+    <div class="weather" style="margin-top:12px" data-tab="radar" role="button">
+      <div class="eyebrow">Scam Weather · Monday</div>
+      <h3>Toll-text season.</h3>
+      <p class="small" style="margin:0;opacity:.85">Fake toll texts are up 38% in Miami-Dade. Real tolls are never collected through a text link.</p>
+    </div>
+    ${row(I.chat, 'Ask Pause anything', 'Day or night, in plain English', 'data-go="assistant"')}
+  </div>
+  ${tabs('home')}`;
+};
+
+V.check = () => `
+  ${nav('Check something')}
+  <div class="scroll">
+    <h1 class="serif">What would you like to check?</h1>
+    <p class="muted small">Tip: in Messages or Mail, press and hold, then tap Share, then Pause.</p>
+    <div style="margin-top:18px">
+      ${row(I.msg, 'A text message', 'Try it: a toll payment text', 'data-act="pick" data-v="sunpass"')}
+      ${row(I.mail, 'An email', "Try it: a doctor's appointment reminder", 'data-act="pick" data-v="doctor"')}
+      ${row(I.qr, 'A QR code', 'Try it: a sticker on a parking meter', 'data-act="pick" data-v="qr"')}
+      ${row(I.phone, 'A phone call', 'Try it: an unknown caller', 'data-go="call"')}
+    </div>
+  </div>`;
+
+V.input = () => {
+  const s = SAMPLES[S.sample];
+  return `
+  ${nav(s.kind)}
+  <div class="scroll" style="display:flex;flex-direction:column">
+    <div class="eyebrow">Shared with Pause</div>
+    <div style="margin-top:12px">${s.content}</div>
+    <div style="flex:1"></div>
+    ${S.plan === 'free' ? `<p class="small muted" style="text-align:center">This uses 1 of your ${S.checksLeft} free checks left this month.</p>` : ''}
+    <button class="btn" data-act="runCheck">${mark(22, true, 3)} Check it</button>
+  </div>`;
+};
+
+V.analyzing = () => `
+  <div class="analyzing">
+    <svg width="120" height="120" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" fill="none" stroke="var(--linen)" stroke-width="1.4"/><circle class="spin-ring" cx="32" cy="32" r="29" fill="none" stroke="var(--champagne)" stroke-width="1.4" stroke-dasharray="182" stroke-linecap="round" transform="rotate(-90 32 32)"/><rect x="24.6" y="21" width="4.6" height="22" rx="1.2" fill="var(--ink)"/><rect x="34.8" y="21" width="4.6" height="22" rx="1.2" fill="var(--ink)"/></svg>
+    <h2 class="serif" style="margin-top:22px">Pausing<span style="color:var(--champagne)">…</span></h2>
+    <ul class="steps" id="steps"><li>Reading the words</li><li>Checking the link and sender</li><li>Comparing with Scam Radar</li></ul>
+  </div>`;
+
+V.verdict = () => {
+  const s = SAMPLES[S.sample];
+  const cls = { scam: 'v-scam', caution: 'v-caution', safe: 'v-safe' }[s.verdict];
+  return `
+  <div class="navrow"><button class="iconbtn" data-act="done" aria-label="Close">${I.close}</button><span class="navtitle">Verdict</span><span style="width:44px"></span></div>
+  <div class="scroll ${cls}">
+    <div class="eyebrow" style="color:var(--graphite)">${s.kind}</div>
+    <div class="verdict-word">${s.word}</div>
+    <p style="font-size:1.1em;margin-top:4px">${s.line}</p>
+    <ol class="reasons">${s.reasons.map(r => `<li><span>${r}</span></li>`).join('')}</ol>
+    <div class="todo"><div class="eyebrow" style="color:inherit;opacity:.8">What to do</div><p style="margin-bottom:0">${s.todo}</p></div>
+    <div style="margin-top:20px">
+      ${s.verdict !== 'safe' ? `<button class="btn" data-act="report">${I.flag} Report to Scam Radar</button>` : ''}
+      ${s.verdict === 'scam' && isFamily() ? `<button class="btn ghost" data-act="tellGuardian">Let ${S.guardian} know</button>` : ''}
+      <button class="btn ghost" data-act="done">Done</button>
+    </div>
+  </div>`;
+};
+
+V.call = () => `
+  <div class="call">
+    <div style="display:flex;align-items:center;gap:10px">${mark(26, true)}<span class="eyebrow">Pause is screening this call</span></div>
+    <div class="who">Unknown caller</div>
+    <div style="opacity:.7">(786) 555-0199 · Miami, FL</div>
+    <div class="transcript"><div class="eyebrow" style="margin-bottom:8px">The caller said</div><span id="tx" class="typing"></span></div>
+    <div class="warn" id="warn" style="visibility:hidden">
+      <div class="eyebrow" style="color:#E2A39C">Sounds like a "grandparent" scam</div>
+      <p style="margin:8px 0 0">Voices can be copied with AI. Before you say anything, ask for your family code word.</p>
+    </div>
+    <div style="flex:1"></div>
+    <button class="btn" data-go="codecheck">Pick up and ask for the code word</button>
+    <button class="btn ghost" data-act="declineCall">Decline and call Leo's saved number</button>
+  </div>`;
+
+V.codecheck = () => `
+  <div class="call">
+    <div class="eyebrow">On the call</div>
+    <h2 class="serif" style="font-size:2em;margin-top:10px">Did the caller say your code word?</h2>
+    <p style="opacity:.75">Hold the box to see your word. The caller can't see your screen.</p>
+    <div class="reveal" id="reveal" style="color:var(--ivory);border-color:#5A5248;margin-top:10px">Hold to reveal</div>
+    <div style="flex:1"></div>
+    <button class="btn" data-act="codeYes">Yes, they knew it</button>
+    <button class="btn ghost" data-act="codeNo">No, they didn't</button>
+  </div>`;
+
+V.money = () => `
+  ${nav('Money Guard')}
+  <div class="scroll v-scam">
+    <div class="eyebrow">Flagged today · 4:12 PM</div>
+    <h1 class="serif" style="margin-top:8px">$1,500 in gift cards.</h1>
+    <p class="muted">Three purchases at three stores in one afternoon. That's unusual for you.</p>
+    <div class="todo"><p style="margin:0"><b>Did someone ask you to pay with gift cards?</b> No real company, government office, or grandchild in trouble asks to be paid that way.</p></div>
+    <div style="margin-top:18px">
+      <button class="btn" data-act="moneyAsked">Someone asked me to</button>
+      <button class="btn ghost" data-act="moneyMine">They're gifts. All good.</button>
+    </div>
+    <div class="rule"></div>
+    <div style="display:flex;gap:12px;align-items:flex-start">${I.bank}<p class="small muted" style="margin:0">Connected read-only through Plaid. Pause can see transactions, but it can never move money or see your bank password.</p></div>
+  </div>`;
+
+V.circle = () => isFamily() ? `
+  <div class="navrow"><span></span><span class="navtitle">Family Circle</span><span style="width:44px"></span></div>
+  <div class="scroll">
+    <h1 class="serif">Your circle.</h1>
+    <p class="small muted">${planLine()} · 3 of 6 places used</p>
+    <div style="margin-top:14px">
+      <div class="row" style="cursor:default"><span class="member-av gold">R</span><span class="grow"><div class="t">Rosa · You</div><div class="s">Protected</div></span></div>
+      <div class="row" style="cursor:default"><span class="member-av">D</span><span class="grow"><div class="t">${S.guardian}</div><div class="s">Guardian · gets high-risk alerts only</div></span></div>
+      <div class="row" style="cursor:default"><span class="member-av">L</span><span class="grow"><div class="t">Leo</div><div class="s">Grandson · protected</div></span></div>
+      <button class="row" data-act="invite"><span class="glyph">${I.plus}</span><span class="grow"><div class="t">Invite someone</div><div class="s">3 places left on your plan</div></span></button>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="eyebrow">What ${S.guardian} can see</div>
+      <ul class="ticks">
+        <li>${I.yes} That a scam was blocked</li>
+        <li>${I.yes} That a risky payment was flagged</li>
+        <li>${I.no} Your messages or calls</li>
+        <li>${I.no} Your bank balance</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Family code word</div>
+      <div class="reveal" id="reveal" style="margin-top:12px">Hold to reveal</div>
+      <button class="btn ghost" data-go="call" style="margin-top:12px">${I.phone} Practice a scam call</button>
+    </div>
+    ${row(I.sun, 'Setup Sunday', S.booked ? `Booked · ${S.booked}` : 'Free live video help, every Sunday', 'data-go="setup"')}
+  </div>
+  ${tabs('circle')}` : lockedView('circle');
+
+function lockedView(tab) {
+  return `
+  <div class="navrow"><span></span><span class="navtitle">${tab === 'circle' ? 'Family Circle' : 'Money Guard'}</span><span style="width:44px"></span></div>
+  <div class="scroll">
+    <div class="card lock-card" style="margin-top:30px">
+      <div class="glyph" style="margin:0 auto 14px;width:56px;height:56px">${I.lock}</div>
+      <div class="eyebrow">Part of Pause Family</div>
+      <h2 class="serif" style="margin-top:10px">Protect up to six people you love.</h2>
+      <ul class="ticks" style="text-align:left;max-width:270px;margin:12px auto 0">
+        <li>${I.yes} A Guardian for high-risk alerts</li>
+        <li>${I.yes} Family Code Word for scam calls</li>
+        <li>${I.yes} Money Guard for risky payments</li>
+      </ul>
+      <p class="small muted">$9.99 a month or $99 a year</p>
+      <button class="btn" data-go="plans" style="margin-top:8px">See plans</button>
+    </div>
+  </div>
+  ${tabs(tab)}`;
+}
+
+V.radar = () => `
+  <div class="navrow"><span></span><span class="navtitle">Scam Radar</span><span style="width:44px"></span></div>
+  <div class="scroll">
+    <h1 class="serif">Near you this week.</h1>
+    <p class="small muted">Miami-Dade · confirmed by our team from member reports</p>
+    <div class="weather" style="margin-top:14px">
+      <div class="eyebrow">Scam Weather · Monday, Nov 2</div>
+      <h3>Toll-text season.</h3>
+      <p class="small" style="margin:0;opacity:.85">Expect fake toll and package texts this week. Real tolls are never collected through a text link.</p>
+    </div>
+    <div style="margin-top:14px">
+      ${[['Fake toll texts', 'Look-alike SunPass links', '1,284', '+38%'], ['Power shut-off calls', 'Callers posing as the electric company', '412', '+12%'], ['Fake package holds', '"Your delivery is on hold" texts', '377', ''], ['"Grandparent" calls', 'A relative "in trouble" needs money', '96', '+21%']]
+        .map(([t, s, c, u], i) => `<div class="trend"><span class="n">${i + 1}</span><span><b>${t}</b><div class="small muted">${s}</div></span><span style="text-align:right"><div class="c">${c}</div>${u ? `<div class="up">${u}</div>` : '<div class="small muted">reports</div>'}</span></div>`).join('')}
+    </div>
+    <button class="btn" data-act="reportSheet" style="margin-top:14px">${I.flag} Report a scam</button>
+  </div>
+  ${tabs('radar')}`;
+
+V.learn = () => {
+  const q = QUIZ[S.quiz.i];
+  const done = S.quiz.i >= QUIZ.length;
+  return `
+  <div class="navrow"><span></span><span class="navtitle">Learn</span><span style="width:44px"></span></div>
+  <div class="scroll">
+    <h1 class="serif">Spot the Scam.</h1>
+    <p class="small muted">This week's 60-second drill · 3 questions</p>
+    <div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+      <div><div class="eyebrow">Weekly streak</div><div style="font:500 1.6em var(--font-display);margin-top:4px">${S.streak} weeks</div></div>
+      <div style="text-align:right"><div class="eyebrow">Level</div><div style="font:500 1.6em var(--font-display);margin-top:4px">II · Sharp Eye</div></div>
+    </div>
+    <div class="dots">${[0, 1, 2, 3, 4, 5].map(i => `<i class="${i < S.streak ? 'on' : ''}"></i>`).join('')}</div>
+    ${done ? `
+      <div class="card" style="margin-top:16px;text-align:center">
+        <div class="eyebrow">Drill complete</div>
+        <h2 class="serif" style="margin-top:8px">${S.quiz.score} of 3 correct.</h2>
+        <p class="muted small">Your streak is now ${S.streak} weeks. A new drill arrives Monday with Scam Weather.</p>
+        <button class="btn ghost" data-act="quizReset">Try again</button>
+      </div>` : `
+      <div class="card" style="margin-top:16px">
+        <div class="eyebrow">Question ${S.quiz.i + 1} of 3</div>
+        <p style="font:500 1.3em/1.3 var(--font-display);margin:12px 0 0">${q.text}</p>
+        ${S.quiz.answered ? `
+          <div class="todo ${S.quiz.answered === q.answer ? 'v-safe' : 'v-scam'}" style="background:${S.quiz.answered === q.answer ? 'var(--safe-wash)' : 'var(--scam-wash)'}">
+            <b>${S.quiz.answered === q.answer ? 'Correct.' : 'Not quite.'}</b> It's ${q.answer === 'scam' ? 'a scam' : 'real'}. ${q.why}
+          </div>
+          <button class="btn" data-act="quizNext" style="margin-top:14px">${S.quiz.i === QUIZ.length - 1 ? 'Finish' : 'Next question'}</button>` : `
+          <div class="quiz-opts"><button class="btn danger" data-act="quiz" data-v="scam">Scam</button><button class="btn ghost" style="margin:0" data-act="quiz" data-v="real">Real</button></div>`}
+      </div>`}
+  </div>
+  ${tabs('learn')}`;
+};
+
+V.assistant = () => `
+  ${nav('Ask Pause')}
+  <div class="scroll">
+    <div class="chatlog" id="chatlog">
+      <div class="msg bot">Hello Rosa. I'm here day or night. What's on your mind?</div>
+      ${S.chat.map(m => `<div class="msg ${m.me ? 'me' : 'bot'}">${m.t}</div>`).join('')}
+    </div>
+    <div class="chips">${Object.keys(ANSWERS).filter(k => !S.chat.some(m => m.t === k)).map(k => `<button class="chip" data-act="ask" data-v="${k}">${k}</button>`).join('')}</div>
+    <p class="small muted" style="margin-top:18px">Ask Pause gives general guidance. For money already sent, always call your bank first.</p>
+  </div>`;
+
+V.plans = () => {
+  const yr = S.billing === 'year';
+  return `
+  ${nav('Plans', { close: true })}
+  <div class="scroll">
+    <h1 class="serif">Choose your protection.</h1>
+    ${S.plan === 'free' && S.checksLeft <= 0 ? `<p class="muted">You've used your 5 free checks this month. They reset on the 1st.</p>` : `<p class="muted">Start free. Upgrade when Pause has earned it.</p>`}
+    <div style="text-align:center;margin:8px 0 4px"><div class="toggle2"><button class="${!yr ? 'on' : ''}" data-act="billing" data-v="month">Monthly</button><button class="${yr ? 'on' : ''}" data-act="billing" data-v="year">Yearly · save $20</button></div></div>
+    <div class="plan featured"><span class="ribbon">Most families</span>
+      <div class="eyebrow">Pause Family</div>
+      <div class="price" style="margin-top:6px">${yr ? '$99<span class="small muted" style="font-family:var(--font-body)"> / year</span>' : '$9.99<span class="small muted" style="font-family:var(--font-body)"> / month</span>'}</div>
+      <ul><li>Up to 6 people</li><li>Unlimited checks and call screening</li><li>Guardian alerts and Family Code Word</li><li>Money Guard for risky payments</li></ul>
+      <button class="btn" style="margin-top:14px" data-act="choose" data-v="family">${S.plan === 'family' ? 'Your plan' : 'Choose Family'}</button>
+    </div>
+    <div class="plan">
+      <div class="eyebrow">Pause Plus</div>
+      <div class="price" style="margin-top:6px">$4.99<span class="small muted" style="font-family:var(--font-body)"> / month</span></div>
+      <ul><li>1 person</li><li>Unlimited checks and call screening</li></ul>
+      <button class="btn ghost" style="margin-top:14px" data-act="choose" data-v="plus">${S.plan === 'plus' ? 'Your plan' : 'Choose Plus'}</button>
+    </div>
+    <div class="plan">
+      <div class="eyebrow">Pause Free</div>
+      <div class="price" style="margin-top:6px">$0</div>
+      <ul><li>5 checks a month</li><li>Scam Radar, Scam Weather, and Ask Pause</li></ul>
+    </div>
+    <div style="text-align:center;margin-top:10px"><button class="linkbtn" data-act="partnerSheet">Have a code from your bank, credit union, or employer?</button></div>
+    <p class="small muted" style="text-align:center;margin:4px 0 0">No ads. We never sell your data. Cancel anytime.</p>
+  </div>`;
+};
+
+V.account = () => `
+  ${nav('Account')}
+  <div class="scroll">
+    <div style="display:flex;gap:14px;align-items:center"><span class="member-av gold" style="width:58px;height:58px;font-size:1.6em">R</span><div><h2 class="serif" style="margin:0">Rosa M.</h2><div class="small muted">${planLine()}</div></div></div>
+    <label class="lbl">Reading size</label>
+    <div class="seg">${[[1, 'Standard'], [1.15, 'Large'], [1.3, 'Largest']].map(([v, l]) => `<button class="${S.ts === v ? 'on' : ''}" data-act="ts" data-v="${v}" style="font:700 .8em var(--font-body)">${l}</button>`).join('')}</div>
+    <div style="margin-top:18px">
+      ${row(I.card, 'Plan', planName(), 'data-go="plans"')}
+      ${row(I.circle, 'Guardian', isFamily() ? S.guardian : 'Part of Pause Family', isFamily() ? 'data-tab="circle"' : 'data-go="plans"')}
+      ${row(I.bank, 'Bank or employer code', S.provider ? `Active · ${S.provider}` : 'Get Pause through a partner', 'data-act="partnerSheet"')}
+      ${row(I.sun, 'Setup Sunday', S.booked ? `Booked · ${S.booked}` : 'Free live help', 'data-go="setup"')}
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="eyebrow">Our promise</div>
+      <p style="font:500 1.3em/1.25 var(--font-display);margin:8px 0 6px">No ads. We never sell your data.</p>
+      <p class="small muted" style="margin:0">Your messages are checked and then deleted. We are completing a SOC 2 security audit before launch.</p>
+    </div>
+    <div class="card" style="margin-top:12px;background:transparent;border-style:dashed">
+      <div class="eyebrow" style="color:var(--graphite)">Prototype controls</div>
+      <p class="small muted" style="margin:6px 0 10px">For our class demo: switch plans to show both experiences.</p>
+      <div class="toggle2">${['free', 'plus', 'family'].map(p => `<button class="${S.plan === p ? 'on' : ''}" data-act="demoPlan" data-v="${p}">${p[0].toUpperCase() + p.slice(1)}</button>`).join('')}</div>
+    </div>
+  </div>`;
+
+V.setup = () => `
+  ${nav('Setup Sunday')}
+  <div class="scroll">
+    <h1 class="serif">Set up together, live.</h1>
+    <p class="muted">A free 30-minute video call. We'll help you and your family add your Guardian and choose a code word.</p>
+    <label class="lbl">Choose a time (Eastern)</label>
+    ${['Sunday, Nov 8 · 4:00 PM', 'Sunday, Nov 8 · 6:00 PM', 'Sunday, Nov 15 · 4:00 PM'].map(t => row(I.sun, t, 'Video call · bring a family member if you like', `data-act="book" data-v="${t}"`, S.booked === t ? 'selected' : '')).join('')}
+    ${S.booked ? `<div class="todo" style="background:var(--safe-wash)"><b>You're booked for ${S.booked}.</b> We'll text you the link that morning.</div>` : ''}
+  </div>`;
+
+/* ---------- render + navigation ---------- */
+const TAB_SCREENS = ['home', 'radar', 'circle', 'learn'];
+function render(id) {
+  current = id;
+  const dark = id === 'call' || id === 'codecheck';
+  $screen.classList.toggle('dark', dark);
+  $screen.style.setProperty('--ts', S.ts);
+  closeSheet();
+  const locked = (id === 'circle' || id === 'money') && !isFamily();
+  const html = id === 'money' && !isFamily() ? lockedView('home') : V[id]();
+  $app.innerHTML = `<section class="view ${TAB_SCREENS.includes(id) ? 'has-tabs' : ''}">${html}</section>`;
+  const n = NOTES[locked ? 'locked' : id] || NOTES.home;
+  document.getElementById('nTitle').textContent = n[0];
+  document.getElementById('nWhy').textContent = n[1];
+  document.getElementById('nChoice').textContent = n[2];
+  document.getElementById('nBmc').innerHTML = n[3].map(b => `<span class="bmc">${b}</span>`).join('');
+  after(id);
+}
+function go(id, push = true) { if (push && current) stack.push(current); render(id); }
+function back() { render(stack.pop() || 'home'); }
+function tab(id) { stack = []; render(id); }
+
+let timers = [];
+function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+function after(id) {
+  clearTimers();
+  if (id === 'analyzing') {
+    const lis = [...document.querySelectorAll('#steps li')];
+    lis.forEach((li, i) => timers.push(setTimeout(() => li.classList.add('on'), 250 + i * 550)));
+    if (!SHOT) timers.push(setTimeout(() => { stack = stack.filter(s => s !== 'analyzing'); render('verdict'); }, 2100));
+    else lis.forEach(li => li.classList.add('on'));
+  }
+  if (id === 'call') {
+    const line = 'Grandma? It\'s Leo. I had an accident and I need money for bail right now. Please don\'t tell Mom.';
+    const el = document.getElementById('tx'); let i = 0;
+    const tick = () => { el.textContent = '"' + line.slice(0, i) + (i >= line.length ? '"' : ''); if (i++ < line.length) timers.push(setTimeout(tick, 28)); else { el.classList.remove('typing'); document.getElementById('warn').style.visibility = 'visible'; } };
+    if (SHOT) { i = line.length; } tick();
+  }
+  const rv = document.getElementById('reveal');
+  if (rv) {
+    const show = () => rv.textContent = S.codeWord, hide = () => rv.textContent = 'Hold to reveal';
+    rv.addEventListener('pointerdown', show); ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => rv.addEventListener(e, hide));
+  }
+  const log = document.getElementById('chatlog'); if (log) log.parentElement.scrollTop = 1e6;
+}
+
+/* ---------- actions ---------- */
+const A = {
+  setupFor(v) { S.setupFor = v; S.plan = v === 'me' ? 'free' : 'family'; go('text'); },
+  ts(v) { S.ts = Number(v); render(current); },
+  finishSetup() { stack = []; render('home'); toast('You\'re protected. Welcome to Pause.'); },
+  saveGuardian() { S.guardian = (document.getElementById('gname').value || 'Daniel').trim(); toast(`Invitation sent to ${S.guardian}.`); go('codeword'); },
+  saveCode() { S.codeWord = (document.getElementById('cw').value || 'Mango sunset').trim(); stack = []; render('home'); toast('Your family is protected. Welcome to Pause.'); },
+  pick(v) { S.sample = v; go('input'); },
+  runCheck() {
+    if (S.plan === 'free') {
+      if (S.checksLeft <= 0) return go('plans');
+      S.checksLeft--;
+    }
+    go('analyzing');
+  },
+  report() { toast('Reported. Our team confirms reports within hours, then warns everyone nearby.'); },
+  tellGuardian() { toast(`${S.guardian} was told a scam was blocked. He can't see the message itself.`); },
+  done() { stack = []; render('home'); },
+  declineCall() { stack = []; render('home'); toast('Call declined. Calling Leo at his saved number…'); },
+  codeYes() { stack = []; render('home'); toast("Good. It's most likely really Leo. If he asks for money, call his parents too."); },
+  codeNo() { stack = []; render('home'); toast(`Hang up. That was a scam. ${isFamily() ? S.guardian + ' has been alerted, and the call was' : 'The call was'} reported to Scam Radar.`, 4200); },
+  moneyAsked() {
+    sheet(`<div class="eyebrow">You did the right thing</div><h2 class="serif" style="margin-top:8px">Stop here. Don't share the card numbers.</h2>
+      <ol class="reasons"><li><span>Keep the cards and the receipts.</span></li><li><span>Call the company on the back of each card and tell them it was a scam.</span></li><li><span>Report it at ReportFraud.ftc.gov. We can do it with you.</span></li></ol>
+      <p class="small muted">${S.guardian} has been told a risky payment was flagged. Not the amount, unless you choose to share it.</p>
+      <button class="btn" data-act="closeMoney">Got it</button>`);
+  },
+  closeMoney() { S.moneyResolved = true; closeSheet(); stack = []; render('home'); },
+  moneyMine() { S.moneyResolved = true; stack = []; render('home'); toast("Got it. We won't flag these again."); },
+  invite() { toast('Invite link ready to share. 3 places left on your plan.'); },
+  reportSheet() {
+    sheet(`<div class="eyebrow">Report a scam</div><h2 class="serif" style="margin-top:8px">What did you receive?</h2>
+      ${[['msg', 'A text or email'], ['phone', 'A phone call'], ['qr', 'A QR code or sticker'], ['card', 'A payment request']].map(([i, t]) => row(I[i], t, '', 'data-act="reported"')).join('')}`);
+  },
+  reported() { closeSheet(); toast('Thank you. Every confirmed report makes Pause smarter for everyone.'); },
+  quiz(v) { S.quiz.answered = v; if (v === QUIZ[S.quiz.i].answer) S.quiz.score++; render('learn'); },
+  quizNext() { S.quiz.i++; S.quiz.answered = null; if (S.quiz.i >= QUIZ.length) S.streak = Math.min(6, S.streak + 1); render('learn'); },
+  quizReset() { S.quiz = { i: 0, score: 0, answered: null }; render('learn'); },
+  ask(v) {
+    S.chat.push({ me: true, t: v }); render('assistant');
+    const log = document.getElementById('chatlog'); const t = document.createElement('div'); t.className = 'msg bot'; t.textContent = '…'; log.appendChild(t);
+    timers.push(setTimeout(() => { S.chat.push({ me: false, t: ANSWERS[v] }); render('assistant'); }, 700));
+  },
+  billing(v) { S.billing = v; render('plans'); },
+  choose(v) { S.plan = v; S.checksLeft = 5; toast(v === 'family' ? 'Welcome to Pause Family. Family Circle and Money Guard are on.' : 'Welcome to Pause Plus. Unlimited checks are on.'); stack = []; render('home'); },
+  partnerSheet() {
+    sheet(`<div class="eyebrow">Partner code</div><h2 class="serif" style="margin-top:8px">Get Pause through your bank or employer.</h2>
+      <p class="muted small">Many credit unions, banks, and employers offer Pause Family free to their members.</p>
+      <label class="lbl" for="pc">Your code</label><input class="field" id="pc" value="CU-PAUSE-2027" style="letter-spacing:.08em">
+      <button class="btn" style="margin-top:16px" data-act="applyCode">Apply code</button>`);
+  },
+  applyCode() { S.plan = 'family'; S.provider = 'your credit union'; closeSheet(); stack = []; render('home'); toast('Code accepted. Pause Family is provided by your credit union.'); },
+  book(v) { S.booked = v; render('setup'); },
+  demoPlan(v) { S.plan = v; S.checksLeft = 5; S.provider = null; render('account'); },
+};
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-go],[data-act],[data-back],[data-tab],[data-close-sheet]');
+  if (!t || !$screen.contains(t)) return;
+  if (t.hasAttribute('data-close-sheet')) return closeSheet();
+  if (t.hasAttribute('data-back')) return back();
+  if (t.dataset.tab) return tab(t.dataset.tab);
+  if (t.dataset.act && A[t.dataset.act]) A[t.dataset.act](t.dataset.v);
+  if (t.dataset.go) go(t.dataset.go);
+});
+
+/* ---------- frame scaling + page controls ---------- */
+const FW = 417, FH = 876;
+function fit() {
+  const wrap = document.getElementById('wrap');
+  const vw = Math.min(innerWidth, document.documentElement.clientWidth || innerWidth);
+  const vh = Math.min(innerHeight, document.documentElement.clientHeight || innerHeight);
+  const availH = (SHOT ? vh : vh - 56) - 32;
+  const availW = vw - 32;
+  const s = SHOT ? 1 : Math.min(1, availH / FH, availW / FW);
+  document.getElementById('device').style.transform = `scale(${s})`;
+  wrap.style.width = FW * s + 'px'; wrap.style.height = FH * s + 'px';
+}
+['resize', 'orientationchange', 'load'].forEach(e => addEventListener(e, fit));
+if (window.visualViewport) visualViewport.addEventListener('resize', fit);
+new ResizeObserver(fit).observe(document.documentElement);
+fit();
+
+const notesBtn = document.getElementById('notesBtn');
+const setNotes = on => { document.getElementById('notes').classList.toggle('open', on); notesBtn.setAttribute('aria-pressed', on); };
+notesBtn.addEventListener('click', () => setNotes(notesBtn.getAttribute('aria-pressed') !== 'true'));
+document.getElementById('restartBtn').addEventListener('click', () => { S = fresh(); S.plan = 'family'; stack = []; render('welcome'); });
+if (params.get('notes') === '1') setNotes(true);
+
+render(params.get('screen') || 'welcome');
+</script>
+</body>
+</html>
