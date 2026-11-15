@@ -346,7 +346,7 @@ const mark = (s = 28, light = false, ring = 2) =>
 const SAMPLES = {
   sunpass: {
     kind: 'A text message', icon: 'msg', verdict: 'scam',
-    content: `<div class="bubble"><div class="from">Text from +1 (839) 555-0117</div>SunPass: You have an unpaid toll of $4.15. Pay within 24 hrs to avoid a $50 late fee: <a>sunpass-tolls-pay.info</a></div>`,
+    content: `<div class="bubble"><div class="from">Text from +1 (839) 555-0117</div>SunPass: You have an unpaid toll of $4.15. Pay within 24 hrs to avoid a $50 late fee: <a href="#" data-act="scamLink">sunpass-tolls-pay.info</a></div>`,
     word: 'Scam.', line: "Don't tap the link.",
     reasons: [
       "The link isn't SunPass. It's a look-alike site registered last week.",
@@ -890,6 +890,7 @@ const A = {
     }
     go('analyzing');
   },
+  scamLink() { toast("Pause held this link. Links in texts are how this scam works. Tap <b>Check it</b> and we'll look first.", 4200); },
   report() { toast('Reported. Our team confirms reports within hours, then warns everyone nearby.'); },
   tellGuardian() { toast(`${S.guardian} was told a scam was blocked. He can't see the message itself.`); },
   done() { stack = []; render('home'); },
@@ -934,6 +935,7 @@ const A = {
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-go],[data-act],[data-back],[data-tab],[data-close-sheet]');
   if (!t || !$screen.contains(t)) return;
+  if (t.tagName === 'A') e.preventDefault();
   if (t.hasAttribute('data-close-sheet')) return closeSheet();
   if (t.hasAttribute('data-back')) return back();
   if (t.dataset.tab) return tab(t.dataset.tab);
