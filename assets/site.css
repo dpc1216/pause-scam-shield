@@ -133,7 +133,8 @@ section { padding: 120px 0; }
 /* team + timeline */
 .team { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; margin-top: 48px; }
 .founder { border-top: 1px solid var(--champagne); padding-top: 22px; }
-.mono { width: 72px; height: 72px; border-radius: 50%; border: 1px solid var(--champagne); display: grid; place-items: center; font: 500 28px var(--font-display); color: var(--brass); margin-bottom: 18px; }
+.mono { width: 112px; height: 112px; border-radius: 50%; border: 1px solid var(--champagne); display: grid; place-items: center; font: 500 38px var(--font-display); color: var(--brass); margin-bottom: 18px; }
+.headshot { display: block; width: 112px; height: 112px; border-radius: 50%; object-fit: cover; object-position: center 30%; border: 1px solid var(--champagne); padding: 4px; background: var(--ivory, #F7F4EF); margin-bottom: 18px; }
 .founder h3 { font-size: 26px; }
 .founder .role { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--graphite); font-weight: 700; margin-top: 8px; }
 .founder p { font-size: 16px; color: var(--graphite); margin: 12px 0 0; }
