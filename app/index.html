@@ -708,7 +708,7 @@ V.radar = () => `
     <h1 class="serif">Near you this week.</h1>
     <p class="small muted">Miami-Dade · confirmed by our team from member reports</p>
     <div class="weather" style="margin-top:14px">
-      <div class="eyebrow">Scam Weather · Monday, Nov 2</div>
+      <div class="eyebrow">Scam Weather · ${dayLabel(thisMonday())}</div>
       <h3>Toll-text season.</h3>
       <p class="small" style="margin:0;opacity:.85">Expect fake toll and package texts this week. Real tolls are never collected through a text link.</p>
     </div>
@@ -825,9 +825,14 @@ V.setup = () => `
     <h1 class="serif">Set up together, live.</h1>
     <p class="muted">A free 30-minute video call. We'll help you and your family add your Guardian and choose a code word.</p>
     <label class="lbl">Choose a time (Eastern)</label>
-    ${['Sunday, Nov 8 · 4:00 PM', 'Sunday, Nov 8 · 6:00 PM', 'Sunday, Nov 15 · 4:00 PM'].map(t => row(I.sun, t, 'Video call · bring a family member if you like', `data-act="book" data-v="${t}"`, S.booked === t ? 'selected' : '')).join('')}
+    ${(() => { const s1 = nextSunday(0), s2 = nextSunday(1); return [`${dayLabel(s1)} · 4:00 PM`, `${dayLabel(s1)} · 6:00 PM`, `${dayLabel(s2)} · 4:00 PM`]; })().map(t => row(I.sun, t, 'Video call · bring a family member if you like', `data-act="book" data-v="${t}"`, S.booked === t ? 'selected' : '')).join('')}
     ${S.booked ? `<div class="todo" style="background:var(--safe-wash)"><b>You're booked for ${S.booked}.</b> We'll text you the link that morning.</div>` : ''}
   </div>`;
+
+/* ---------- dates: always current, so the prototype never shows a past week ---------- */
+function dayLabel(d) { return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }); }
+function thisMonday() { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
+function nextSunday(weeksAhead) { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7) + 7 * weeksAhead); return d; }
 
 /* ---------- render + navigation ---------- */
 const TAB_SCREENS = ['home', 'radar', 'circle', 'learn'];
