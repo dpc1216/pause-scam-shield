@@ -90,18 +90,21 @@
     range.addEventListener('input', update); update();
   }
 
-  // ---------- Contact form: opens the visitor's email app, addressed to us ----------
+  // ---------- Contact form: prototype confirmation (green check, then the form resets) ----------
   const cf = $('#contact-form');
   if (cf) {
     const topic = new URLSearchParams(location.search).get('topic');
     if (topic && cf.topic) cf.topic.value = topic;
+    const note = $('#contact-note');
     cf.addEventListener('submit', e => {
       e.preventDefault();
-      const to = cf.dataset.to;
-      const subject = `[${cf.topic.value}] Message from ${cf.name.value}`;
-      const body = `${cf.message.value}\n\n${cf.name.value}\n${cf.email.value}`;
-      location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      $('#contact-note').hidden = false;
+      const first = cf.name.value.trim().split(/\s+/)[0];
+      note.innerHTML = '<span class="sent-check" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+        + `<span><b>Message sent.</b> Thanks${first ? ', ' + first.replace(/[<>&"]/g, '') : ''}. We'll reply within one business day.</span>`;
+      note.hidden = false;
+      note.classList.remove('pop'); void note.offsetWidth; note.classList.add('pop');
+      cf.reset();
+      if (topic && cf.topic) cf.topic.value = topic;
     });
   }
 })();

@@ -42,7 +42,7 @@
       <select id="topic" name="topic"><option>General question</option><option>Partner pilot</option><option>Setup Sunday</option><option>Press</option></select>
       <label for="message">Message</label><textarea id="message" name="message" required></textarea>
       <button class="btn" type="submit" style="margin-top:24px">Send message</button>
-      <p class="fine" id="contact-note" hidden style="margin-top:14px">Your email app should open with the message ready to send.</p>
+      <p class="sent-note" id="contact-note" role="status" aria-live="polite" hidden></p>
     </form>
   </div>
 </section>
